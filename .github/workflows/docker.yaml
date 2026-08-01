@@ -1,23 +1,24 @@
-name: docker workflow
+name: Docker Workflow
 
 on:
   workflow_dispatch:
     inputs:
       dockerimage:
-        description: Docker image name
+        description: "Docker image name"
         required: true
-        default: spring
+        default: "spring"
+
       DOCKERHUB_USERNAME:
-        description: Docker Hub username
+        description: "Docker Hub username"
         required: true
-        default: afriid
+        default: "afriid"
 
 jobs:
   build_and_publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Java 17
@@ -26,10 +27,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build application
+      - name: Build Application
         run: ./mvnw clean package -DskipTests
 
-      - name: Setup Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
@@ -38,20 +39,12 @@ jobs:
           username: ${{ github.event.inputs.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKER_SECRET }}
 
-      - name: Build and Push (Main)
-        if: github.ref_name == 'main'
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ github.event.inputs.DOCKERHUB_USERNAME }}/${{ github.event.inputs.dockerimage }}:${{ github.run_id }}
-
-      - name: Build and Push (snapshot)
-        if: github.ref_name != 'main'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ github.event.inputs.DOCKERHUB_USERNAME }}/${{ github.event.inputs.dockerimage }}-snapshot:${{ github.run_id }}
+          tags: |
+            ${{ github.event.inputs.DOCKERHUB_USERNAME }}/${{ github.event.inputs.dockerimage }}:${{ github.run_id }}
+            ${{ github.event.inputs.DOCKERHUB_USERNAME }}/${{ github.event.inputs.dockerimage }}:latest
